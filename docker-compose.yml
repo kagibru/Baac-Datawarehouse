@@ -1,0 +1,63 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: baac-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-baac_dw}
+      POSTGRES_USER: ${POSTGRES_USER:-baac_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_local_only}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init:/docker-entrypoint-initdb.d:ro
+      - ./sql:/opt/baac/sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-baac_user} -d ${POSTGRES_DB:-baac_dw}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  etl:
+    build:
+      context: .
+      dockerfile: etl/Dockerfile
+    container_name: baac-etl
+    profiles: ["etl"]
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-baac_dw}
+      DB_USER: ${POSTGRES_USER:-baac_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-change_me_local_only}
+      BAAC_START_YEAR: ${BAAC_START_YEAR:-2019}
+      BAAC_END_YEAR: ${BAAC_END_YEAR:-2024}
+      BAAC_DATA_DIR: /app/data/raw/baac
+      INSEE_DATA_DIR: /app/data/raw/insee
+    volumes:
+      - ./data:/app/data:ro
+      - ./sql:/app/sql:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  metabase:
+    image: metabase/metabase:latest
+    container_name: baac-metabase
+    restart: unless-stopped
+    ports:
+      - "${METABASE_PORT:-3000}:3000"
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_DBNAME: ${POSTGRES_DB:-baac_dw}
+      MB_DB_PORT: 5432
+      MB_DB_USER: ${POSTGRES_USER:-baac_user}
+      MB_DB_PASS: ${POSTGRES_PASSWORD:-change_me_local_only}
+      MB_DB_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

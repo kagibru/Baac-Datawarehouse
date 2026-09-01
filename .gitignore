@@ -1,0 +1,22 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.idea/
+.vscode/
+*.log
+
+# Sources volumineuses ou téléchargées
+data/raw/baac/*.csv
+data/raw/insee/*.csv
+data/raw/insee/*.zip
+data/sample/*.csv
+
+# Exports de tableaux de bord et fichiers locaux
+dashboard/*.db
+dashboard/*.mv.db
+outputs/
+
