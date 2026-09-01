@@ -96,7 +96,7 @@ Les commandes deviendront fonctionnelles à la fin de l'implémentation de l'ETL
 - `docs/01_cadrage_metier.md`
 - `docs/02_architecture.md`
 - `docs/03_modele_dimensionnel.md`
-- `docs/04_regles_etl.md` (à venir)
+- `docs/04_regles_etl.md`
 - `docs/05_controles_qualite.md` (à venir)
 
 ## Sécurité
