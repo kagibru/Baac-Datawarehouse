@@ -5,6 +5,7 @@
 CREATE OR REPLACE VIEW reporting.v_analyse_region AS
 WITH accidents_region AS (
     SELECT
+        d.annee,
         l.code_region,
         MAX(l.region) AS region,
         SUM(f.accident_count) AS nombre_accidents,
@@ -15,11 +16,13 @@ WITH accidents_region AS (
             CASE WHEN f.est_accident_mortel THEN 1 ELSE 0 END
         ) AS accidents_mortels
     FROM dw.fact_accident f
+    JOIN dw.dim_date d
+        ON d.date_key = f.date_key
     JOIN dw.dim_localisation l
         ON l.localisation_key = f.localisation_key
     WHERE l.localisation_key <> 0
       AND l.code_region IS NOT NULL
-    GROUP BY l.code_region
+    GROUP BY d.annee, l.code_region
 ),
 
 population_region AS (
@@ -59,7 +62,9 @@ SELECT
         100.0 * a.nombre_tues
         / NULLIF(a.nombre_victimes, 0),
         2
-    ) AS taux_mortalite_victimes_pct
+    ) AS taux_mortalite_victimes_pct,
+
+    a.annee
 
 FROM accidents_region a
 LEFT JOIN population_region p
@@ -70,6 +75,7 @@ LEFT JOIN population_region p
 CREATE OR REPLACE VIEW reporting.v_analyse_departement AS
 WITH accidents_departement AS (
     SELECT
+        d.annee,
         l.code_departement,
         MAX(l.departement) AS departement,
         MAX(l.code_region) AS code_region,
@@ -82,11 +88,13 @@ WITH accidents_departement AS (
             CASE WHEN f.est_accident_mortel THEN 1 ELSE 0 END
         ) AS accidents_mortels
     FROM dw.fact_accident f
+    JOIN dw.dim_date d
+        ON d.date_key = f.date_key
     JOIN dw.dim_localisation l
         ON l.localisation_key = f.localisation_key
     WHERE l.localisation_key <> 0
       AND l.code_departement <> 'N/C'
-    GROUP BY l.code_departement
+    GROUP BY d.annee, l.code_departement
 ),
 
 population_departement AS (
@@ -128,7 +136,9 @@ SELECT
         100.0 * a.nombre_tues
         / NULLIF(a.nombre_victimes, 0),
         2
-    ) AS taux_mortalite_victimes_pct
+    ) AS taux_mortalite_victimes_pct,
+
+    a.annee
 
 FROM accidents_departement a
 LEFT JOIN population_departement p
@@ -176,15 +186,21 @@ SELECT
              AND SUM(f.accident_count) >= 10
         THEN true
         ELSE false
-    END AS eligible_comparaison_taux
+    END AS eligible_comparaison_taux,
+
+    d.annee
 
 FROM dw.fact_accident f
 JOIN dw.dim_localisation l
     ON l.localisation_key = f.localisation_key
 
+JOIN dw.dim_date d
+    ON d.date_key = f.date_key
+
 WHERE l.localisation_key <> 0
 
 GROUP BY
+    d.annee,
     l.code_commune,
     l.commune,
     l.code_departement,

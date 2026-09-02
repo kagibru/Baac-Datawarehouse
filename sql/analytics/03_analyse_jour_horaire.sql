@@ -16,7 +16,8 @@ SELECT
         100.0 * SUM(f.nombre_tues)
         / NULLIF(SUM(f.nombre_victimes), 0),
         2
-    ) AS taux_mortalite_victimes_pct
+    ) AS taux_mortalite_victimes_pct,
+    d.annee
 
 FROM dw.fact_accident f
 
@@ -25,7 +26,8 @@ JOIN dw.dim_date d
 
 GROUP BY
     d.jour_semaine_iso,
-    d.jour_nom;
+    d.jour_nom,
+    d.annee;
 
 
 
@@ -50,14 +52,18 @@ SELECT
         100.0 * SUM(f.nombre_tues)
         / NULLIF(SUM(f.nombre_victimes), 0),
         2
-    ) AS taux_mortalite_victimes_pct
+    ) AS taux_mortalite_victimes_pct,
+    d.annee
 
 FROM dw.fact_accident f
 
 JOIN dw.dim_horaire h
     ON h.horaire_key = f.horaire_key
 
-GROUP BY h.periode_journee;
+JOIN dw.dim_date d
+    ON d.date_key = f.date_key
+
+GROUP BY h.periode_journee, d.annee;
 
 -- 3 . Activité par heure
 CREATE OR REPLACE VIEW reporting.v_activite_horaire AS
@@ -73,16 +79,20 @@ SELECT
         100.0 * SUM(f.nombre_tues)
         / NULLIF(SUM(f.nombre_victimes), 0),
         2
-    ) AS taux_mortalite_victimes_pct
+    ) AS taux_mortalite_victimes_pct,
+    d.annee
 
 FROM dw.fact_accident f
 
 JOIN dw.dim_horaire h
     ON h.horaire_key = f.horaire_key
 
+JOIN dw.dim_date d
+    ON d.date_key = f.date_key
+
 WHERE h.horaire_key <> 0
 
-GROUP BY h.heure;
+GROUP BY h.heure, d.annee;
 
 --4 Matrice jour × heure
 
@@ -95,7 +105,8 @@ SELECT
         AS heure_libelle,
     SUM(f.accident_count) AS nombre_accidents,
     SUM(f.nombre_victimes) AS nombre_victimes,
-    SUM(f.nombre_tues) AS nombre_tues
+    SUM(f.nombre_tues) AS nombre_tues,
+    d.annee
 
 FROM dw.fact_accident f
 
@@ -110,4 +121,5 @@ WHERE h.horaire_key <> 0
 GROUP BY
     d.jour_semaine_iso,
     d.jour_nom,
-    h.heure;
+    h.heure,
+    d.annee;

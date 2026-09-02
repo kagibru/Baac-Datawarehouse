@@ -28,13 +28,18 @@ SELECT
         )
         / NULLIF(SUM(f.accident_count), 0),
         2
-    ) AS taux_accidents_mortels_pct
+    ) AS taux_accidents_mortels_pct,
+
+    d.annee
 
 FROM dw.fact_accident f
+JOIN dw.dim_date d
+    ON d.date_key = f.date_key
 JOIN dw.dim_route r
     ON r.route_key = f.route_key
 
 GROUP BY
+    d.annee,
     r.categorie_route_code,
     r.categorie_route;
 
@@ -62,13 +67,17 @@ SELECT
         100.0 * SUM(f.nombre_tues)
         / NULLIF(SUM(f.nombre_victimes), 0),
         2
-    ) AS taux_mortalite_victimes_pct
+    ) AS taux_mortalite_victimes_pct,
+
+    d.annee
 
 FROM dw.fact_accident f
+JOIN dw.dim_date d
+    ON d.date_key = f.date_key
 JOIN dw.dim_route r
     ON r.route_key = f.route_key
 
-GROUP BY r.tranche_vitesse;
+GROUP BY d.annee, r.tranche_vitesse;
 
 
 --3- État de la surface
@@ -84,13 +93,18 @@ SELECT
         100.0 * SUM(f.nombre_tues)
         / NULLIF(SUM(f.nombre_victimes), 0),
         2
-    ) AS taux_mortalite_victimes_pct
+    ) AS taux_mortalite_victimes_pct,
+
+    d.annee
 
 FROM dw.fact_accident f
+JOIN dw.dim_date d
+    ON d.date_key = f.date_key
 JOIN dw.dim_route r
     ON r.route_key = f.route_key
 
 GROUP BY
+    d.annee,
     r.surface_code,
     r.etat_surface;
 
@@ -108,13 +122,18 @@ SELECT
         100.0 * SUM(f.nombre_tues)
         / NULLIF(SUM(f.nombre_victimes), 0),
         2
-    ) AS taux_mortalite_victimes_pct
+    ) AS taux_mortalite_victimes_pct,
+
+    d.annee
 
 FROM dw.fact_accident f
+JOIN dw.dim_date d
+    ON d.date_key = f.date_key
 JOIN dw.dim_circonstance c
     ON c.circonstance_key = f.circonstance_key
 
 GROUP BY
+    d.annee,
     c.meteo_code,
     c.meteo;
 
@@ -133,13 +152,18 @@ SELECT
         100.0 * SUM(f.nombre_tues)
         / NULLIF(SUM(f.nombre_victimes), 0),
         2
-    ) AS taux_mortalite_victimes_pct
+    ) AS taux_mortalite_victimes_pct,
+
+    d.annee
 
 FROM dw.fact_accident f
+JOIN dw.dim_date d
+    ON d.date_key = f.date_key
 JOIN dw.dim_circonstance c
     ON c.circonstance_key = f.circonstance_key
 
 GROUP BY
+    d.annee,
     c.luminosite_code,
     c.luminosite;
 
@@ -160,13 +184,18 @@ SELECT
         100.0 * SUM(f.nombre_tues)
         / NULLIF(SUM(f.nombre_victimes), 0),
         2
-    ) AS taux_mortalite_victimes_pct
+    ) AS taux_mortalite_victimes_pct,
+
+    d.annee
 
 FROM dw.fact_accident f
+JOIN dw.dim_date d
+    ON d.date_key = f.date_key
 JOIN dw.dim_circonstance c
     ON c.circonstance_key = f.circonstance_key
 
 GROUP BY
+    d.annee,
     c.collision_code,
     c.type_collision;
 
@@ -184,9 +213,14 @@ SELECT
         100.0 * SUM(f.nombre_tues)
         / NULLIF(SUM(f.nombre_victimes), 0),
         2
-    ) AS taux_mortalite_victimes_pct
+    ) AS taux_mortalite_victimes_pct,
+
+    d.annee
 
 FROM dw.fact_accident f
+
+JOIN dw.dim_date d
+    ON d.date_key = f.date_key
 
 JOIN dw.dim_circonstance c
     ON c.circonstance_key = f.circonstance_key
@@ -195,5 +229,6 @@ JOIN dw.dim_route r
     ON r.route_key = f.route_key
 
 GROUP BY
+    d.annee,
     c.meteo,
     r.etat_surface;
