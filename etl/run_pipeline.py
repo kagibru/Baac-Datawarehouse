@@ -42,12 +42,13 @@ def main() -> None:
         logging.info("Dry-run terminé: aucune écriture dans PostgreSQL")
         return
 
-    from etl.load import create_engine_for, initialize_database, load_warehouse
+    from etl.load import create_engine_for, initialize_database, load_warehouse, run_quality_checks
 
     logging.info("Connexion à PostgreSQL")
     engine = create_engine_for(settings.database_url)
     initialize_database(engine, settings.sql_dir)
     run_id = load_warehouse(engine, frames)
+    run_quality_checks(engine, settings.sql_dir)
     logging.info("Chargement terminé avec succès, run_id=%s", run_id)
 
 

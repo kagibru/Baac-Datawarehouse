@@ -35,6 +35,11 @@ def initialize_database(engine: Engine, sql_dir: Path) -> None:
             execute_sql_file(connection, path)
 
 
+def run_quality_checks(engine: Engine, sql_dir: Path) -> None:
+    with engine.begin() as connection:
+        execute_sql_file(connection, sql_dir / "quality/01_run_quality_checks.sql")
+
+
 def _upsert_table(connection: Connection, frame: pd.DataFrame, table: str, natural_key: str) -> None:
     temporary = f"tmp_{table}"
     frame.to_sql(temporary, connection, schema="staging", if_exists="replace", index=False, method="multi", chunksize=2000)
