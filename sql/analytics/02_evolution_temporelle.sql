@@ -53,7 +53,9 @@ SELECT
             0
         ),
         2
-    ) AS evolution_accidents_pct
+    ) AS evolution_accidents_pct,
+
+    annee::text AS annee_libelle
 
 FROM activite_annuelle;
 
