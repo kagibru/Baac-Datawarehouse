@@ -9,6 +9,15 @@ Le tableau de bord **Sécurité routière BAAC** est connecté aux vues PostgreS
 3. **Analyse géographique** : régions, départements, communes et carte.
 4. **Routes & circonstances** : route, météo, surface, luminosité et collision.
 
+## Aperçu du rendu local
+
+- [Vue d’ensemble](../docs/visuels%20metabase/01_Tableau%20de%20Bord_Vue%20ensemble.png)
+- [Évolution temporelle](../docs/visuels%20metabase/02_Tableau%20de%20Bord_Evolution%20Temporelle.png)
+- [Analyse géographique](../docs/visuels%20metabase/03_Tableau%20de%20Bord_Analyse%20G%C3%A9ographique.png)
+- [Routes et circonstances](../docs/visuels%20metabase/04_Tableau%20de%20Bord_Routes_et_Circonstances.png)
+
+Ces captures documentent le rendu obtenu localement. Elles permettent de consulter le résultat attendu même si la configuration interne de Metabase n’est pas reconstruite automatiquement.
+
 ## Palette
 
 - bleu principal : `#227FD2` ;
