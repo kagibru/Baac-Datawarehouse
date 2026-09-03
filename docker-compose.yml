@@ -59,5 +59,55 @@ services:
       postgres:
         condition: service_healthy
 
+  airflow-init:
+    build:
+      context: .
+      dockerfile: docker/airflow.Dockerfile
+    profiles: ["orchestration"]
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - >-
+        airflow db migrate &&
+        airflow users create
+        --username $${AIRFLOW_ADMIN_USER}
+        --password $${AIRFLOW_ADMIN_PASSWORD}
+        --firstname BAAC --lastname Admin
+        --role Admin --email admin@baac.local || true
+    environment: &airflow-environment
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/airflow.db
+      AIRFLOW_ADMIN_USER: ${AIRFLOW_ADMIN_USER:-admin}
+      AIRFLOW_ADMIN_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD:-admin}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-baac_dw}
+      DB_USER: ${POSTGRES_USER:-baac_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-change_me_local_only}
+    volumes: &airflow-volumes
+      - airflow_data:/opt/airflow
+      - ./airflow/dags:/opt/airflow/dags:ro
+      - ./:/opt/airflow/project:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  airflow:
+    build:
+      context: .
+      dockerfile: docker/airflow.Dockerfile
+    profiles: ["orchestration"]
+    command: airflow standalone
+    restart: unless-stopped
+    ports:
+      - "${AIRFLOW_PORT:-8080}:8080"
+    environment: *airflow-environment
+    volumes: *airflow-volumes
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
 volumes:
   postgres_data:
+  airflow_data:

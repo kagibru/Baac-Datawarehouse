@@ -11,6 +11,7 @@ htmlcov/
 
 # Sources volumineuses ou téléchargées
 data/raw/baac/*.csv
+data/raw/baac/manifest.json
 data/raw/insee/*.csv
 data/raw/insee/*.zip
 data/sample/*.csv
@@ -19,4 +20,3 @@ data/sample/*.csv
 dashboard/*.db
 dashboard/*.mv.db
 outputs/
-

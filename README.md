@@ -1,106 +1,99 @@
-# BAAC Decisionnel
+# BAAC décisionnel
 
-Système d'information décisionnel consacré à l'analyse des accidents corporels de la circulation routière en France entre 2019 et 2024.
+Entrepôt de données consacré à l’analyse des accidents corporels de la circulation routière en France de 2019 à 2024.
 
-## Objectif
-
-Construire une chaîne reproductible couvrant :
+## Chaîne décisionnelle
 
 ```text
-Sources BAAC + INSEE
-        -> ingestion
-        -> contrôles et nettoyage
-        -> transformations
-        -> Data Warehouse PostgreSQL
-        -> requêtes analytiques
-        -> tableaux de bord
+CSV BAAC + référentiels INSEE
+            ↓
+ETL Python / Pandas
+            ↓
+PostgreSQL — schéma en étoile
+            ↓
+Vues SQL du schéma reporting
+            ↓
+Tableau de bord Metabase
 ```
 
-La granularité cible de la table de faits est : **une ligne par accident**.
+Airflow peut orchestrer le traitement. Docker Compose gère les conteneurs ; Airflow gère l’ordre, les reprises et l’historique des tâches.
 
-## Modèle décisionnel retenu
+## Modèle
 
-Le Data Warehouse adopte un schéma en étoile composé de cinq dimensions et
-d'une table de faits à la granularité d'un accident :
+La table `dw.fact_accident` contient une ligne par accident. Elle est reliée à cinq dimensions : `dim_date`, `dim_horaire`, `dim_localisation`, `dim_route` et `dim_circonstance`.
 
-```text
-dim_date -----------+
-dim_horaire --------+
-dim_localisation ---+--> fact_accident
-dim_route ----------+
-dim_circonstance ---+
+Les sources `usagers`, `vehicules` et `lieux` sont agrégées par `Num_Acc` avant le chargement afin d’éviter les doubles comptages.
+
+## Démarrage rapide
+
+1. Copier `.env.example` vers `.env` et adapter les mots de passe et ports.
+2. Télécharger et préparer les sources :
+
+```bash
+python scripts/download_baac.py --start-year 2019 --end-year 2024
+python scripts/prepare_insee_reference.py
+python scripts/check_sources.py
 ```
 
-Les fichiers `usagers`, `vehicules` et `lieux` sont agrégés par `Num_Acc`
-avant le chargement. Cela garantit une seule ligne par accident et empêche les
-doubles comptages dans les indicateurs.
-
-## Sources
-
-- BAAC : caractéristiques, lieux, véhicules et usagers, millésimes 2019 à 2024.
-- INSEE : Code officiel géographique 2024 et populations de référence 2022.
-
-Les données volumineuses ne sont pas versionnées dans Git. Consultez `data/README.md` pour les préparer.
-
-## Technologies
-
-- PostgreSQL 16 : stockage du Data Warehouse.
-- Python 3.12 et Pandas : ETL.
-- SQL : structures, transformations et requêtes analytiques.
-- Metabase Community : restitution reproductible.
-- Docker Compose : exécution locale de l'ensemble.
-
-## Structure
-
-```text
-baac-datawarehouse/
-|-- data/
-|   |-- raw/baac/
-|   |-- raw/insee/
-|   `-- sample/
-|-- dashboard/
-|-- docker/
-|-- docs/
-|-- etl/
-|-- sql/
-|   |-- init/
-|   |-- ddl/
-|   |-- quality/
-|   `-- analytics/
-|-- tests/
-|-- .env.example
-|-- docker-compose.yml
-`-- README.md
-```
-
-## Démarrage prévu
-
-1. Copier `.env.example` vers `.env` et conserver les valeurs de démonstration localement.
-2. Placer les sources dans les dossiers décrits dans `data/README.md`.
+Les URL officielles et la procédure alternative hors ligne sont détaillées dans [data/README.md](data/README.md).
 3. Démarrer PostgreSQL et Metabase :
 
 ```bash
 docker compose up -d postgres metabase
 ```
 
-4. Exécuter l'ETL :
+4. Exécuter les tests :
+
+```bash
+docker compose run --rm --entrypoint python etl -m pytest -q tests
+```
+
+5. Exécuter directement l’ETL :
 
 ```bash
 docker compose run --rm etl
 ```
 
-Les commandes deviendront fonctionnelles à la fin de l'implémentation de l'ETL et du modèle physique.
+6. Publier ou actualiser les vues analytiques :
+
+```bash
+docker exec baac-postgres sh -lc 'for f in /opt/baac/sql/analytics/[0-9][0-9]_*.sql; do psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f "$f"; done'
+```
+
+Metabase est ensuite disponible sur `http://localhost:3000`.
+
+## Orchestration Airflow
+
+```bash
+docker compose --profile orchestration up airflow-init
+docker compose --profile orchestration up -d airflow
+```
+
+Ouvrir `http://localhost:8080`, puis déclencher le DAG `baac_datawarehouse_pipeline`. Une plage d’années peut être fournie au déclenchement :
+
+```json
+{"start_year": 2019, "end_year": 2024}
+```
+
+## Tableau de bord
+
+Le tableau de bord Metabase comporte quatre onglets : vue d’ensemble, évolution temporelle, analyse géographique et routes/circonstances. Voir [dashboard/README.md](dashboard/README.md).
 
 ## Documentation
 
-- `docs/01_cadrage_metier.md`
-- `docs/02_architecture.md`
-- `docs/03_modele_dimensionnel.md`
-- `docs/04_regles_etl.md`
-- `docs/05_controles_qualite.md`
+- [Cadrage métier](docs/01_cadrage_metier.md)
+- [Architecture](docs/02_architecture.md)
+- [Modèle dimensionnel](docs/03_modele_dimensionnel.md)
+- [Règles ETL](docs/04_regles_etl.md)
+- [Contrôles qualité](docs/05_controles_qualite.md)
+- [Guide d’exploitation](docs/06_guide_exploitation.md)
+- [Orchestration Airflow](docs/07_orchestration_airflow.md)
+- [Validation et recette](docs/08_validation_recette.md)
+- [Guide de soutenance](docs/09_guide_soutenance.md)
 
-## Sécurité
+## Sécurité et versionnement
 
-- Aucun secret réel ne doit être commité.
-- Le fichier `.env` est ignoré par Git.
-- Seul `.env.example` est versionné.
+- `.env` et les données volumineuses ne doivent pas être versionnés ;
+- `.env.example` ne contient que des valeurs de démonstration ;
+- changer les mots de passe avant tout déploiement partagé ;
+- aucun commit Git n’est créé automatiquement par l’assistant.
