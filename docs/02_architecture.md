@@ -2,65 +2,61 @@
 
 ## Principes
 
-- Architecture simple et explicable.
-- Composants libres et exécutables avec Docker Compose.
-- Séparation des données brutes, intermédiaires, décisionnelles et d'audit.
-- Chargements reproductibles et idempotents.
-- Aucun secret dans Git.
+- composants libres et reproductibles avec Docker Compose ;
+- grain décisionnel explicite : une ligne par accident ;
+- séparation entre entrepôt, audit et restitution ;
+- chargements idempotents ;
+- secrets locaux exclus de Git pour la sécurité ;
+- orchestration observable avec Airflow.
 
-## Vue d'ensemble
+## Vue d’ensemble
 
 ```mermaid
 flowchart LR
-    BAAC[CSV BAAC<br/>2019-2024]
-    INSEE[CSV INSEE<br/>COG et populations]
-    ETL[ETL Python<br/>Pandas]
-    RAW[(PostgreSQL<br/>schéma raw)]
-    STG[(PostgreSQL<br/>schéma staging)]
-    DW[(PostgreSQL<br/>schéma dw)]
-    AUDIT[(PostgreSQL<br/>schéma audit)]
-    SQL[Requêtes SQL<br/>analytiques]
+    BAAC[CSV BAAC 2019-2024]
+    INSEE[Référentiels INSEE]
+    AF[Airflow]
+    ETL[ETL Python / Pandas]
+    DW[(PostgreSQL)]
+    AUDIT[(Audit et qualité)]
+    REPORT[Schéma reporting]
     MB[Metabase]
-    PBI[Power BI<br/>optionnel]
 
+    AF --> ETL
     BAAC --> ETL
     INSEE --> ETL
-    ETL --> RAW
-    RAW --> STG
-    STG --> DW
+    ETL --> DW
     ETL --> AUDIT
-    DW --> SQL
-    DW --> MB
-    DW --> PBI
+    DW --> REPORT
+    AF --> REPORT
+    REPORT --> MB
 ```
 
-## Couches PostgreSQL
+## Responsabilités
 
-### `raw`
+| Composant | Responsabilité |
+|---|---|
+| Docker Compose | démarrage et réseau des conteneurs |
+| Airflow | ordre des tâches, reprise et historique |
+| Python/Pandas | extraction, nettoyage, agrégation et chargement |
+| PostgreSQL | modèle en étoile, audit et vues analytiques |
+| Metabase | exploration et tableau de bord |
 
-Copie fidèle des fichiers après ingestion. Les colonnes sont majoritairement conservées en texte pour éviter toute perte lors de l'extraction.
+## Schémas PostgreSQL
 
-### `staging`
+- `staging` : tables temporaires de chargement ;
+- `dw` : dimensions et table de faits ;
+- `audit` : exécutions, volumes et résultats qualité ;
+- `reporting` : vues prêtes pour Metabase.
 
-- normalisation des noms de colonnes ;
-- conversion des types ;
-- harmonisation des codes inconnus ;
-- traitement des lieux multiples ;
-- agrégation des véhicules et usagers par accident ;
-- enrichissement géographique.
+## Flux d’exécution
 
-### `dw`
+1. vérifier les fichiers BAAC et INSEE ;
+2. exécuter les tests unitaires ;
+3. extraire et normaliser les fichiers ;
+4. agréger usagers, véhicules et lieux au grain accident ;
+5. contrôler puis charger PostgreSQL ;
+6. publier les vues du schéma `reporting` ;
+7. consulter les résultats dans Metabase.
 
-Schéma en étoile composé de `fact_accident` et de dimensions conformes.
-
-### `audit`
-
-- historique des exécutions ;
-- volumétrie par étape ;
-- contrôles qualité ;
-- rejets et motifs de rejet.
-
-## Reproductibilité
-
-PostgreSQL et Metabase sont lancés par Docker Compose. L'ETL est exécuté dans un conteneur Python dédié. Les paramètres non secrets sont documentés dans `.env.example`.
-
+L’ETL reste exécutable sans Airflow pour faciliter le développement et le diagnostic.
